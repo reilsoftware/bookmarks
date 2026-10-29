@@ -133,6 +133,7 @@ footer .spacer { flex: 1; }
   <span id="total"></span>
   <a class="btn" id="gen-html" href="/download/static.html" title="Download a standalone copy of this page (read-only) to host anywhere">Generate HTML</a>
   <a class="btn" id="gen-bookmarks" href="/download/browser-import.html" title="Download a file to import in Chrome, Safari, Firefox or Edge">Generate bookmarks</a>
+  <a class="btn" id="gen-json" href="/download/bookmarks.json" title="Download your bookmarks database (a backup you can restore or edit)">Download JSON</a>
 </footer>
 <script>
 'use strict';
@@ -481,14 +482,24 @@ function toNetscape(db) {
   return out.join('\n');
 }
 
+function saveFile(name, text, type) {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const a = el('a', { href: url, download: name });
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 if (!SERVER) {
+  const stamp = new Date().toISOString().slice(0, 10);
   $('#gen-html').remove();  // this already is the static version
   $('#gen-bookmarks').addEventListener('click', e => {
     e.preventDefault();
-    const url = URL.createObjectURL(new Blob([toNetscape(DB)], { type: 'text/html' }));
-    const a = el('a', { href: url, download: `bookmarks-import-${new Date().toISOString().slice(0, 10)}.html` });
-    document.body.append(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    saveFile(`bookmarks-import-${stamp}.html`, toNetscape(DB), 'text/html');
+  });
+  $('#gen-json').addEventListener('click', e => {
+    e.preventDefault();
+    const { _built, _server, ...db } = DB;  // drop the page's own bookkeeping
+    saveFile(`bookmarks-${stamp}.json`, JSON.stringify(db, null, 2) + '\n', 'application/json');
   });
 }
 

@@ -296,6 +296,11 @@ class Handler(BaseHTTPRequestHandler):
             return self.send(200, "text/html; charset=utf-8", page, [("Cache-Control", "no-store")])
         if u.path == "/api/bookmarks":
             return self.json(bm.tidy(bm.load_db()))
+        if u.path == "/download/bookmarks.json":
+            body = json.dumps(bm.tidy(bm.load_db()), indent=2, ensure_ascii=False) + "\n"
+            name = f"bookmarks-{time.strftime('%Y-%m-%d')}.json"
+            return self.send(200, "application/json; charset=utf-8", body.encode(),
+                             [("Content-Disposition", f'attachment; filename="{name}"'), ("Cache-Control", "no-store")])
         if u.path in ("/download/static.html", "/download/browser-import.html"):
             # Also refresh site/, so the files there match what was just downloaded.
             db = bm.load_db()

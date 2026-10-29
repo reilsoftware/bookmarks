@@ -21,6 +21,7 @@ On the page:
 - **Columns 1 2 3 4** at the bottom; your choice is remembered.
 - **Generate HTML** downloads a standalone, read-only copy of the page to host anywhere.
 - **Generate bookmarks** downloads a file to import into Chrome, Safari, Firefox or Edge.
+- **Download JSON** downloads your bookmarks database: a backup you can edit or restore.
 
 The server listens on 127.0.0.1 only. To use it from other devices on your network, run
 `python3 server.py --host 0.0.0.0`; anyone on that network can then edit your bookmarks.
@@ -43,9 +44,18 @@ On your router, forward **80 → NAS:8880** and **443 → NAS:8443** (the `HTTP_
 `HTTPS_PORT` in `.env`). Do **not** forward 1234: it has no password. As a backstop the server
 refuses direct connections from public internet addresses, so a mistaken forward gets a 403.
 
-Your bookmarks live in `./data/` next to the compose file (back it up). To update after
-pulling new code: `docker compose up -d --build`. To change the password, run
-`deploy/set-password.sh` again.
+Your bookmarks live in `./data/` next to the compose file (back it up). To change the
+password, run `deploy/set-password.sh` again.
+
+**Updating.** From the machine with this code, copy it to the server and rebuild in one step
+(over SSH; the server's `.env`, `data/` and password are left alone):
+
+```bash
+deploy/update-server.sh you@your-nas:/path/to/bookmarks
+```
+
+On the server itself: `docker compose up -d --build` rebuilds and restarts; `docker compose
+restart` just restarts.
 
 ## Where your bookmarks live
 
