@@ -251,7 +251,32 @@ def move_bookmark(src_path, src_index, url, dst_path, dst_index):
 
 # ---------- HTTP ----------
 
+TAILSCALE = ipaddress.ip_network("100.64.0.0/10")
+
+
+def is_local_client(addr):
+    """True for this machine, the home network, Tailscale and Docker's own networks.
+    Internet visitors must come through Caddy (which asks for a password), so a direct
+    connection from a public address means a port was forwarded that shouldn't be."""
+    try:
+        ip = ipaddress.ip_address(addr)
+    except ValueError:
+        return False
+    if ip.version == 6 and ip.ipv4_mapped:
+        ip = ip.ipv4_mapped
+    return ip.is_private or ip.is_loopback or ip.is_link_local or (ip.version == 4 and ip in TAILSCALE)
+
+
 class Handler(BaseHTTPRequestHandler):
+    def handle_one_request(self):
+        if is_local_client(self.client_address[0]):
+            return super().handle_one_request()
+        # Refuse before reading the request: no page, no API, no icon fetching.
+        self.raw_requestline = self.rfile.readline(65537)
+        if self.raw_requestline and self.parse_request():
+            self.send_error(403, "Use the HTTPS address with your password")
+        self.close_connection = True
+
     def send(self, status, ctype, body, headers=()):
         self.send_response(status)
         self.send_header("Content-Type", ctype)

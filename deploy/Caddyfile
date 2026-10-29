@@ -1,0 +1,7 @@
+# HTTPS front door for visitors from the internet. Every request needs the username and
+# password in auth.caddy (made by set-password.sh); if that file is missing Caddy won't start.
+{$DOMAIN} {
+	encode gzip
+	import /etc/caddy/auth.caddy
+	reverse_proxy bookmarks:8765
+}

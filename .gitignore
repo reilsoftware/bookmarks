@@ -9,3 +9,11 @@ __pycache__/
 *.bak
 *.tmp
 .DS_Store
+
+# Container deployment: data, secrets and Caddy state stay on the server.
+.env
+data/
+deploy/auth.caddy
+deploy/caddy-data/
+deploy/caddy-config/
+.docker/

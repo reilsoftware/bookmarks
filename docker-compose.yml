@@ -1,0 +1,33 @@
+# Bookmarks server plus Caddy for HTTPS with a password from the internet.
+#
+#   cp .env.example .env              # then set DOMAIN (and ports if needed)
+#   deploy/set-password.sh USERNAME   # creates deploy/auth.caddy; Caddy won't start without it
+#   docker compose up -d --build
+#
+# At home (LAN or Tailscale):  http://<nas>:${LAN_PORT}, no login.
+# From the internet:           https://${DOMAIN}, username and password.
+# Forward only router ports 80 -> ${HTTP_PORT} and 443 -> ${HTTPS_PORT}; never ${LAN_PORT}.
+
+services:
+  bookmarks:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "${LAN_PORT:-1234}:8765"
+    volumes:
+      - ./data:/data
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on: [bookmarks]
+    ports:
+      - "${HTTP_PORT:-8880}:80"
+      - "${HTTPS_PORT:-8443}:443"
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./deploy/auth.caddy:/etc/caddy/auth.caddy:ro
+      - ./deploy/caddy-data:/data
+      - ./deploy/caddy-config:/config

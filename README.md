@@ -25,6 +25,28 @@ On the page:
 The server listens on 127.0.0.1 only. To use it from other devices on your network, run
 `python3 server.py --host 0.0.0.0`; anyone on that network can then edit your bookmarks.
 
+## Run it in Docker (e.g. on a NAS), reachable from the internet
+
+`docker-compose.yml` runs the server plus [Caddy](https://caddyserver.com/) in front of it:
+
+- **At home** (LAN or Tailscale): `http://<nas>:1234`, no login.
+- **From the internet**: `https://your.domain`, with a username and password. Caddy gets a free
+  Let's Encrypt certificate automatically.
+
+```bash
+cp .env.example .env              # set DOMAIN; change ports if they're taken
+deploy/set-password.sh kevin      # choose the internet password (stored only as a hash)
+docker compose up -d --build
+```
+
+On your router, forward **80 → NAS:8880** and **443 → NAS:8443** (the `HTTP_PORT` and
+`HTTPS_PORT` in `.env`). Do **not** forward 1234: it has no password. As a backstop the server
+refuses direct connections from public internet addresses, so a mistaken forward gets a 403.
+
+Your bookmarks live in `./data/` next to the compose file (back it up). To update after
+pulling new code: `docker compose up -d --build`. To change the password, run
+`deploy/set-password.sh` again.
+
 ## Where your bookmarks live
 
 Your data is kept outside this folder, in `~/.bookmarks/`:
