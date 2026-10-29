@@ -12,9 +12,10 @@ esac
 dir="$(cd "$(dirname "$0")" && pwd)"
 compose_file="$dir/../docker-compose.yml"
 
-# QNAP Container Station keeps docker off the PATH, and its CLI can't write ~/.docker.
+# QNAP Container Station keeps docker off the PATH, and its CLI can't write its usual
+# config folder, so keep the CLI's settings next to the app.
 command -v docker >/dev/null 2>&1 || PATH="/share/CACHEDEV1_DATA/.qpkg/container-station/bin:$PATH"
-mkdir -p "$HOME/.docker" 2>/dev/null || export DOCKER_CONFIG="$dir/../.docker"
+export DOCKER_CONFIG="${DOCKER_CONFIG:-$(cd "$dir/.." && pwd)/.docker}"
 
 printf 'Password for %s: ' "$user"
 stty -echo; read -r pw; stty echo; echo

@@ -21,9 +21,10 @@ COPYFILE_DISABLE=1 tar --no-xattrs -czf - \
 echo "Rebuilding and restarting"
 ssh "$host" "cd '$path' && sh -s" <<'EOF'
 set -e
-# QNAP Container Station keeps docker off the PATH, and its CLI can't write ~/.docker.
+# QNAP Container Station keeps docker off the PATH, and its CLI can't write its usual
+# config folder, so keep the CLI's settings next to the app.
 command -v docker >/dev/null 2>&1 || PATH="/share/CACHEDEV1_DATA/.qpkg/container-station/bin:$PATH"
-mkdir -p "$HOME/.docker" 2>/dev/null || export DOCKER_CONFIG="$PWD/.docker"
+export DOCKER_CONFIG="${DOCKER_CONFIG:-$PWD/.docker}"
 docker compose up -d --build bookmarks
 # Caddy runs only once a password has been set (deploy/set-password.sh).
 if [ -f deploy/auth.caddy ]; then docker compose up -d caddy; fi
