@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bookmarks</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%232f6fde' d='M6 2h12a1 1 0 0 1 1 1v19l-7-4-7 4V3a1 1 0 0 1 1-1z'/></svg>">
+<style>
+:root {
+  --bg: #f3f4f6; --card: #fff; --text: #1d2129; --muted: #6b7280; --border: #e3e5e8;
+  --hover: #f1f3f5; --accent: #2f6fde; --accent-soft: #e8f0fd; --danger: #c62828;
+  --shadow: 0 1px 2px rgb(0 0 0 / .05), 0 2px 8px rgb(0 0 0 / .04);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #131519; --card: #1d2025; --text: #e6e8eb; --muted: #979ea8; --border: #2d3138;
+    --hover: #262a30; --accent: #6ea0ff; --accent-soft: #1f2c44; --danger: #ff6b6b;
+    --shadow: 0 1px 2px rgb(0 0 0 / .4);
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; display: flex; flex-direction: column; font: 14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); }
+button, input { font: inherit; color: inherit; }
+
+header {
+  position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 10px 16px; background: var(--card); border-bottom: 1px solid var(--border);
+}
+.brand { font-weight: 650; font-size: 15px; }
+header .icon.add { margin-left: -6px; }
+#new-section { width: 220px; padding: 5px 9px; border: 1px solid var(--accent); border-radius: 6px; background: var(--bg); outline: none; }
+#new-section.error { border-color: var(--danger); }
+#boards { display: flex; gap: 4px; flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.tab { border: 0; background: transparent; color: var(--muted); padding: 6px 12px; border-radius: 6px; cursor: pointer; white-space: nowrap; }
+.tab:hover { background: var(--hover); color: var(--text); }
+.tab.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+#search { width: 280px; margin-left: auto; padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); }
+#search:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.btn { border: 1px solid var(--border); background: var(--card); padding: 5px 12px; border-radius: 6px; cursor: pointer; white-space: nowrap; text-decoration: none; }
+.btn:hover { background: var(--hover); }
+
+/* Masonry-style columns, like Papaly: cards stack down each column without row gaps. */
+#grid { flex: 1; column-count: 4; column-gap: 14px; padding: 16px; }
+.card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow);
+  min-width: 0; break-inside: avoid; margin-bottom: 14px;
+}
+.card h2 {
+  display: flex; align-items: center; gap: 6px; margin: 0; padding: 7px 8px 6px 10px;
+  font-size: 13px; font-weight: 650; border-bottom: 1px solid var(--border); cursor: pointer; user-select: none;
+}
+.card .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.count { color: var(--muted); font-weight: 500; font-size: 12px; }
+.caret { color: var(--muted); transition: transform .15s; }
+.card.collapsed h2 { border-bottom: 0; }
+.card.collapsed .caret { transform: rotate(-90deg); }
+.card.collapsed ul, .card.collapsed .addbox { display: none; }
+.card ul { list-style: none; margin: 0; padding: 4px; min-height: 8px; }
+.card li { display: flex; align-items: center; border-radius: 6px; }
+.card li:hover { background: var(--hover); }
+.card li a { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; padding: 5px 6px; color: inherit; text-decoration: none; }
+.card li a:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 6px; }
+.card li a span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fav { width: 16px; height: 16px; flex: none; border-radius: 3px; }
+.fav.letter { display: inline-grid; place-items: center; font-size: 10px; font-weight: 700; background: var(--accent-soft); color: var(--accent); }
+.icon {
+  flex: none; border: 0; background: transparent; color: var(--muted); cursor: pointer;
+  width: 22px; height: 22px; padding: 0; border-radius: 4px; line-height: 1; font-size: 15px;
+}
+.icon:hover { background: var(--border); color: var(--text); }
+.icon.del { opacity: 0; margin-right: 2px; }
+.icon.del:hover { color: var(--danger); }
+li:hover .icon.del, .icon.del:focus-visible { opacity: 1; }
+.icon.add { font-size: 17px; }
+.icon.del-section:hover { color: var(--danger); }
+@media (hover: none) { .icon.del { opacity: .5; } }
+
+/* Add box: URL first, then ShortName, in the same input. */
+.addbox { display: flex; flex-direction: column; gap: 4px; margin: 4px 4px 0; padding: 6px; border: 1px solid var(--accent); border-radius: 6px; }
+.addbox .row { display: flex; align-items: center; gap: 8px; }
+.addbox input { flex: 1; min-width: 0; border: 0; background: transparent; padding: 2px 0; outline: none; }
+.addbox .hint { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.addbox .hint.error { color: var(--danger); }
+.addbox .slot { width: 16px; height: 16px; flex: none; display: inline-grid; place-items: center; color: var(--muted); }
+.spin { width: 12px; height: 12px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Drag and drop */
+li.dragging, .card.dragging { opacity: .35; }
+.card h2[draggable="true"] { cursor: grab; }
+.card.drop-before { box-shadow: 0 -3px 0 var(--accent); }
+.card.drop-after { box-shadow: 0 3px 0 var(--accent); }
+li.drop-before { box-shadow: inset 0 2px 0 var(--accent); }
+li.drop-after { box-shadow: inset 0 -2px 0 var(--accent); }
+.card.drop-into { outline: 2px dashed var(--accent); outline-offset: 2px; }
+
+.empty { color: var(--muted); column-span: all; text-align: center; padding: 40px 0; }
+footer {
+  position: sticky; bottom: 0; z-index: 5; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 8px 16px; background: var(--card); border-top: 1px solid var(--border); font-size: 13px;
+}
+footer .label { color: var(--muted); }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.seg button { border: 0; background: transparent; padding: 4px 11px; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--border); }
+.seg button:hover { background: var(--hover); }
+.seg button.on { background: var(--accent); color: #fff; }
+footer .spacer { flex: 1; }
+#total { color: var(--muted); }
+
+@media (max-width: 640px) {
+  header { gap: 8px; }
+  #search { order: 5; flex: 1 1 100%; width: auto; margin: 0; }
+  #grid { padding: 12px; }
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand" id="brand">Bookmarks</div>
+  <button class="icon add" id="add-section" title="Add a section" hidden>+</button>
+  <input id="new-section" placeholder="New section name, then Enter" autocomplete="off" hidden>
+  <nav id="boards" aria-label="Boards"></nav>
+  <input id="search" type="search" placeholder="Search  ( / )" autocomplete="off">
+</header>
+<main id="grid"></main>
+<footer>
+  <span class="label">Columns</span>
+  <span class="seg" id="cols"></span>
+  <span class="spacer"></span>
+  <span id="total"></span>
+  <a class="btn" id="gen-html" href="/download/static.html" title="Download a standalone copy of this page (read-only) to host anywhere">Generate HTML</a>
+  <a class="btn" id="gen-bookmarks" href="/download/browser-import.html" title="Download a file to import in Chrome, Safari, Firefox or Edge">Generate bookmarks</a>
+</footer>
+<script>
+'use strict';
+let DB = /*__DATA__*/{"folders": []};
+const SERVER = !!DB._server;  // set when served by server.py; enables editing
+
+const $ = s => document.querySelector(s);
+const store = {
+  get(k, d) { try { return JSON.parse(localStorage.getItem('bm:' + k)) ?? d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem('bm:' + k, JSON.stringify(v)); } catch {} },
+};
+
+function el(tag, attrs = {}, ...kids) {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (v == null) continue;
+    if (k === 'class') n.className = v;
+    else if (k.startsWith('on')) n.addEventListener(k.slice(2), v);
+    else n.setAttribute(k, v);
+  }
+  n.append(...kids.flat().filter(x => x != null));
+  return n;
+}
+
+// A flat database (sections of links, no subfolders) shows every section as a card on one page.
+// Otherwise top-level folders become tabs and their subfolders become cards (deeper ones flattened as "A / B").
+// Each card keeps the folder-index path of its section so edits can address it.
+let boards = [], flat = true;
+function buildBoards() {
+  boards = [];
+  const folders = DB.folders || [];
+  flat = !folders.some(f => f.folders?.length);
+  const rootCard = DB.bookmarks?.length ? { name: 'Unsorted', path: [], items: DB.bookmarks } : null;
+  if (flat) {
+    const cards = folders.map((f, i) => ({ name: f.name, path: [i], items: f.bookmarks || [] }));
+    if (rootCard) cards.unshift(rootCard);
+    boards.push({ name: DB.title || 'Bookmarks', path: [], cards });
+    return;
+  }
+  if (rootCard) boards.push({ name: 'Unsorted', path: [], cards: [rootCard] });
+  folders.forEach((f, i) => {
+    const cards = [];
+    if (f.bookmarks?.length) cards.push({ name: f.name, path: [i], items: f.bookmarks });
+    const walk = (g, label, path) => {
+      if (g.bookmarks?.length || !g.folders?.length) cards.push({ name: label, path, items: g.bookmarks || [] });
+      (g.folders || []).forEach((s, j) => walk(s, `${label} / ${s.name}`, [...path, j]));
+    };
+    (f.folders || []).forEach((s, j) => walk(s, s.name, [i, j]));
+    boards.push({ name: f.name, path: [i], cards });
+  });
+}
+
+let active = decodeURIComponent(location.hash.slice(1)) || store.get('board', '');
+const collapsed = new Set(store.get('collapsed', []));
+let firstHit = null;
+let adding = null;  // path (as a string) of the card whose add box is open
+
+// ---------- server calls ----------
+
+async function api(path, body) {
+  const r = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || `Server error ${r.status}`);
+  return data;
+}
+
+function setDB(db) {
+  DB = Object.assign(db, { _server: SERVER });
+  buildBoards();
+  render();
+}
+
+async function edit(path, body) {
+  try { setDB(await api(path, body)); }
+  catch (e) { alert(e.message); }
+}
+
+// ---------- rendering ----------
+
+function favicon(url) {
+  let host = '';
+  try { const u = new URL(url); if (/^https?:$/.test(u.protocol)) host = u.hostname; } catch {}
+  const letter = el('span', { class: 'fav letter' }, (host.replace(/^www\./, '') || '•').charAt(0).toUpperCase());
+  if (!host) return letter;
+  // Show the letter until the icon arrives (the server may take a few seconds to fetch it the first time).
+  const src = SERVER ? `/icon?url=${encodeURIComponent(url)}` : `https://icons.duckduckgo.com/ip3/${host}.ico`;
+  const img = new Image();
+  img.className = 'fav';
+  img.alt = '';
+  img.addEventListener('load', () => {
+    // DuckDuckGo answers unknown sites with a blank 48×48 placeholder rather than an error.
+    if (!SERVER && img.naturalWidth === 48 && img.naturalHeight === 48) return;
+    if (letter.isConnected) letter.replaceWith(img);
+  });
+  img.src = src;
+  return letter;
+}
+
+// While dragging: { kind: 'link', card, index, url } or { kind: 'section', card }.
+let dragged = null;
+const draggingLink = () => dragged?.kind === 'link';
+const clearDrop = () => document.querySelectorAll('.drop-before,.drop-after,.drop-into').forEach(n => n.classList.remove('drop-before', 'drop-after', 'drop-into'));
+const isAfter = (e, node) => { const r = node.getBoundingClientRect(); return e.clientY > r.top + r.height / 2; };
+const parentOf = path => String(path.slice(0, -1));
+
+function moveSection(c, after) {
+  const d = dragged;
+  dragged = null;
+  clearDrop();
+  const from = d.card.path.at(-1), to = c.path.at(-1) + (after ? 1 : 0);
+  if (to === from || to === from + 1) return;  // dropped where it already is
+  edit('/api/move-section', { path: d.card.path, toIndex: to });
+}
+
+function moveTo(c, toIndex) {
+  const d = dragged;
+  dragged = null;
+  clearDrop();
+  if (!d) return;
+  const same = String(d.card.path) === String(c.path);
+  if (same && (toIndex === d.index || toIndex === d.index + 1)) return;  // dropped where it already is
+  edit('/api/move', { path: d.card.path, index: d.index, url: d.url, toPath: c.path, toIndex });
+}
+
+function linkItem(b, c, searching) {
+  const index = c.items.indexOf(b);
+  const canDrag = SERVER && !searching;
+  const li = el('li', { draggable: canDrag ? 'true' : null },
+    el('a', { href: b.url, target: '_blank', rel: 'noopener noreferrer', draggable: canDrag ? 'false' : null, title: b.note ? `${b.note}\n${b.url}` : b.url },
+      favicon(b.url), el('span', {}, b.ShortName || b.url)),
+    SERVER ? el('button', { class: 'icon del', title: 'Delete', 'aria-label': `Delete ${b.ShortName}`, onclick: () => {
+      if (confirm(`Delete “${b.ShortName}” from ${c.name}?\n\n${b.url}`)) edit('/api/delete', { path: c.path, index, url: b.url });
+    } }, '×') : null);
+  if (canDrag) {
+    li.addEventListener('dragstart', e => {
+      dragged = { kind: 'link', card: c, index, url: b.url };
+      e.dataTransfer.effectAllowed = 'copyMove';
+      e.dataTransfer.setData('text/uri-list', b.url);  // also lets you drop it on the browser's bookmarks bar
+      e.dataTransfer.setData('text/plain', b.url);
+      li.classList.add('dragging');
+    });
+    li.addEventListener('dragend', () => { li.classList.remove('dragging'); dragged = null; clearDrop(); });
+    li.addEventListener('dragover', e => {
+      if (!draggingLink()) return;  // a dragged section is handled by the card
+      e.preventDefault(); e.stopPropagation(); clearDrop();
+      li.classList.add(isAfter(e, li) ? 'drop-after' : 'drop-before');
+    });
+    li.addEventListener('drop', e => {
+      if (!draggingLink()) return;
+      e.preventDefault(); e.stopPropagation();
+      moveTo(c, index + (isAfter(e, li) ? 1 : 0));
+    });
+  }
+  return li;
+}
+
+function addBox(c) {
+  let step = 'url', resolved = null;
+  const input = el('input', { placeholder: 'Paste a URL, then Enter', autocomplete: 'off', spellcheck: 'false' });
+  const slot = el('span', { class: 'slot' }, '+');
+  const hint = el('div', { class: 'hint' }, 'Esc to cancel');
+  const close = () => { adding = null; render(); };
+  input.addEventListener('keydown', async e => {
+    if (e.key === 'Escape') return close();
+    if (e.key !== 'Enter' || input.disabled) return;
+    e.preventDefault();
+    hint.classList.remove('error');
+    if (step === 'url') {
+      if (!input.value.trim()) return;
+      input.disabled = true;
+      slot.replaceChildren(el('span', { class: 'spin' }));
+      hint.textContent = 'Fetching icon…';
+      try {
+        resolved = await api('/api/resolve', { url: input.value });
+        slot.replaceChildren(favicon(resolved.url));
+        hint.textContent = resolved.url;
+        step = 'name';
+        input.value = resolved.title || '';
+        input.placeholder = 'ShortName, then Enter';
+      } catch (err) {
+        slot.textContent = '+';
+        hint.textContent = err.message;
+        hint.classList.add('error');
+      }
+      input.disabled = false;
+      input.focus();
+      input.select();
+    } else {
+      input.disabled = true;
+      try {
+        adding = null;
+        setDB(await api('/api/add', { path: c.path, url: resolved.url, ShortName: input.value }));
+      } catch (err) {
+        adding = String(c.path);
+        input.disabled = false;
+        hint.textContent = err.message;
+        hint.classList.add('error');
+      }
+    }
+  });
+  setTimeout(() => input.focus());
+  return el('div', { class: 'addbox' }, el('div', { class: 'row' }, slot, input), hint);
+}
+
+const folderAt = path => path.reduce((n, i) => n.folders[i], DB);
+// Only a section with no links and no subsections can be deleted.
+const isEmptySection = c => c.path.length > 0 && !c.items.length && !folderAt(c.path).folders?.length;
+
+function card(c, key, label = c.name, items = c.items, searching = false) {
+  const isCollapsed = !searching && collapsed.has(key) && adding !== String(c.path);
+  const sec = el('section', { class: 'card' + (isCollapsed ? ' collapsed' : '') },
+    el('h2', { title: 'Click to collapse', onclick: () => {
+        collapsed.has(key) ? collapsed.delete(key) : collapsed.add(key);
+        store.set('collapsed', [...collapsed]);
+        sec.classList.toggle('collapsed');
+      } },
+      el('span', { class: 'caret' }, '▾'), el('span', { class: 'name' }, label), el('span', { class: 'count' }, String(items.length)),
+      SERVER && !searching && isEmptySection(c) ? el('button', { class: 'icon del-section', title: 'Delete this empty section', onclick: e => {
+        e.stopPropagation();
+        if (confirm(`Delete the empty section “${c.name}”?`)) edit('/api/delete-section', { path: c.path, name: folderAt(c.path).name });
+      } }, '×') : null,
+      SERVER && !searching ? el('button', { class: 'icon add', title: 'Add a bookmark', onclick: e => {
+        e.stopPropagation();
+        adding = adding === String(c.path) ? null : String(c.path);
+        render();
+      } }, '+') : null),
+    !searching && adding === String(c.path) ? addBox(c) : null,
+    el('ul', {}, items.map(b => linkItem(b, c, searching))));
+  if (SERVER && !searching) {
+    // Sections are dragged by their header and can be reordered among their siblings.
+    const h2 = sec.querySelector('h2');
+    if (c.path.length) {
+      h2.draggable = true;
+      h2.addEventListener('dragstart', e => {
+        dragged = { kind: 'section', card: c };
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', c.name);
+        sec.classList.add('dragging');
+      });
+      h2.addEventListener('dragend', () => { sec.classList.remove('dragging'); dragged = null; clearDrop(); });
+    }
+    const canTakeSection = () => dragged?.kind === 'section' && dragged.card !== c && c.path.length && parentOf(dragged.card.path) === parentOf(c.path);
+    // A link dropped on the card but not on another link goes to the end of the section.
+    sec.addEventListener('dragover', e => {
+      if (!draggingLink() && !canTakeSection()) return;
+      e.preventDefault(); e.stopPropagation(); clearDrop();
+      sec.classList.add(draggingLink() ? 'drop-into' : isAfter(e, sec) ? 'drop-after' : 'drop-before');
+    });
+    sec.addEventListener('dragleave', e => { if (!sec.contains(e.relatedTarget)) sec.classList.remove('drop-into', 'drop-before', 'drop-after'); });
+    sec.addEventListener('drop', e => {
+      if (draggingLink()) { e.preventDefault(); moveTo(c, c.items.length); }
+      else if (canTakeSection()) { e.preventDefault(); moveSection(c, isAfter(e, sec)); }
+    });
+  }
+  return sec;
+}
+
+function render() {
+  if (!boards.some(b => b.name === active)) active = boards[0]?.name;
+  $('#boards').replaceChildren(...(boards.length < 2 ? [] : boards).map(b => el('button', {
+    class: 'tab' + (b.name === active ? ' active' : ''),
+    onclick: () => { active = b.name; store.set('board', active); history.replaceState(null, '', '#' + encodeURIComponent(active)); render(); },
+  }, b.name)));
+
+  const grid = $('#grid');
+  grid.replaceChildren();
+  const terms = $('#search').value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  firstHit = null;
+  if (terms.length) {
+    for (const b of boards) for (const c of b.cards) {
+      const hits = c.items.filter(x => {
+        const hay = `${x.ShortName} ${x.url} ${x.note || ''} ${c.name} ${b.name}`.toLowerCase();
+        return terms.every(t => hay.includes(t));
+      });
+      if (hits.length) { grid.append(card(c, '', flat ? c.name : `${b.name} › ${c.name}`, hits, true)); firstHit ??= hits[0]; }
+    }
+    if (!firstHit) grid.append(el('p', { class: 'empty' }, 'No matches.'));
+  } else {
+    const b = boards.find(x => x.name === active);
+    if (!b?.cards.length) grid.append(el('p', { class: 'empty' }, 'No sections yet. Add one to bookmarks.json (a folder with a "name").'));
+    b?.cards.forEach(c => grid.append(card(c, `${b.name}/${c.name}`)));
+  }
+  const total = boards.reduce((n, b) => n + b.cards.reduce((m, c) => m + c.items.length, 0), 0);
+  $('#total').textContent = `${total} bookmarks`;
+}
+
+// ---------- columns ----------
+
+let cols = store.get('cols', 4);
+function renderCols() {
+  $('#grid').style.columnCount = cols;
+  $('#cols').replaceChildren(...[1, 2, 3, 4].map(n => el('button', {
+    class: n === cols ? 'on' : null, 'aria-pressed': String(n === cols),
+    onclick: () => { cols = n; store.set('cols', n); renderCols(); },
+  }, String(n))));
+}
+
+// ---------- new section ----------
+
+if (SERVER) {
+  const btn = $('#add-section'), input = $('#new-section');
+  const close = () => { input.hidden = true; input.value = ''; input.classList.remove('error'); input.title = ''; btn.hidden = false; };
+  btn.hidden = false;
+  btn.addEventListener('click', () => { btn.hidden = true; input.hidden = false; input.focus(); });
+  input.addEventListener('blur', () => { if (!input.value.trim()) close(); });
+  input.addEventListener('keydown', async e => {
+    if (e.key === 'Escape') return close();
+    if (e.key !== 'Enter' || !input.value.trim()) return;
+    // In tabbed mode the section goes into the open tab; otherwise it is a new top-level section.
+    const path = boards.find(b => b.name === active)?.path || [];
+    try {
+      const db = await api('/api/add-section', { path, name: input.value.trim() });
+      const parent = path.reduce((n, i) => n.folders[i], db);
+      adding = String([...path, parent.folders.length - 1]);  // open the new section's add box
+      close();
+      setDB(db);
+    } catch (err) {
+      input.classList.add('error');
+      input.title = err.message;
+      alert(err.message);
+    }
+  });
+}
+
+// ---------- browser export (used when this page is opened without the server) ----------
+
+// Netscape bookmark format: the file every browser's "Import bookmarks" accepts.
+function toNetscape(db) {
+  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const now = Math.floor(Date.now() / 1000);
+  const out = ['<!DOCTYPE NETSCAPE-Bookmark-file-1>', '<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">',
+    `<TITLE>${esc(db.title || 'Bookmarks')}</TITLE>`, `<H1>${esc(db.title || 'Bookmarks')}</H1>`, '<DL><p>'];
+  const emit = (node, ind) => {
+    for (const b of node.bookmarks || []) {
+      out.push(`${ind}<DT><A HREF="${esc(b.url)}" ADD_DATE="${b.added || now}">${esc(b.ShortName || b.url)}</A>`);
+      if (b.note) out.push(`${ind}<DD>${esc(b.note)}`);
+    }
+    for (const f of node.folders || []) {
+      out.push(`${ind}<DT><H3 ADD_DATE="${now}">${esc(f.name)}</H3>`, `${ind}<DL><p>`);
+      emit(f, ind + '    ');
+      out.push(`${ind}</DL><p>`);
+    }
+  };
+  emit(db, '    ');
+  out.push('</DL><p>', '');
+  return out.join('\n');
+}
+
+if (!SERVER) {
+  $('#gen-html').remove();  // this already is the static version
+  $('#gen-bookmarks').addEventListener('click', e => {
+    e.preventDefault();
+    const url = URL.createObjectURL(new Blob([toNetscape(DB)], { type: 'text/html' }));
+    const a = el('a', { href: url, download: `bookmarks-import-${new Date().toISOString().slice(0, 10)}.html` });
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
+}
+
+// ---------- search and keys ----------
+
+$('#search').addEventListener('input', render);
+$('#search').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && firstHit) window.open(firstHit.url, '_blank', 'noopener');
+  if (e.key === 'Escape') { e.target.value = ''; render(); }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && !/^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName)) { e.preventDefault(); $('#search').focus(); }
+});
+document.addEventListener('dragover', () => { if (dragged) clearDrop(); });
+
+const title = DB.title || 'Bookmarks';
+document.title = title;
+$('#brand').textContent = title;
+buildBoards();
+renderCols();
+render();
+</script>
+</body>
+</html>

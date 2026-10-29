@@ -1,0 +1,11 @@
+# Personal data lives in ~/.bookmarks; these guard against copies left in the code folder.
+bookmarks.json
+bookmarks.json.bak
+icons/
+site/
+home.html
+
+__pycache__/
+*.bak
+*.tmp
+.DS_Store

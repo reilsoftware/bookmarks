@@ -1,0 +1,37 @@
+{
+  "title": "Bookmarks",
+  "folders": [
+    {
+      "name": "Daily",
+      "bookmarks": [
+        { "ShortName": "Gmail", "url": "https://mail.google.com/" },
+        { "ShortName": "Calendar", "url": "https://calendar.google.com/" },
+        { "ShortName": "Drive", "url": "https://drive.google.com/" },
+        { "ShortName": "Weather", "url": "https://www.windy.com/" }
+      ]
+    },
+    {
+      "name": "News",
+      "bookmarks": [
+        { "ShortName": "Hacker News", "url": "https://news.ycombinator.com/" },
+        { "ShortName": "BBC News", "url": "https://www.bbc.com/news" },
+        { "ShortName": "Reuters", "url": "https://www.reuters.com/" }
+      ]
+    },
+    {
+      "name": "Reference",
+      "bookmarks": [
+        { "ShortName": "Wikipedia", "url": "https://en.wikipedia.org/" },
+        { "ShortName": "MDN Web Docs", "url": "https://developer.mozilla.org/", "note": "HTML, CSS and JavaScript reference" },
+        { "ShortName": "Python Docs", "url": "https://docs.python.org/3/" }
+      ]
+    },
+    {
+      "name": "Code",
+      "bookmarks": [
+        { "ShortName": "GitHub", "url": "https://github.com/" },
+        { "ShortName": "Stack Overflow", "url": "https://stackoverflow.com/" }
+      ]
+    }
+  ]
+}
